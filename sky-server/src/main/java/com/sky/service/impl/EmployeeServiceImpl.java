@@ -118,4 +118,25 @@ public class EmployeeServiceImpl implements EmployeeService {
         return new PageResult(total, result);
     }
 
+
+    /**
+     * 启用或停用员工
+     * @param status
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id) {
+
+        // 写法一：new一个实体对象，然后set属性值
+        // Employee employee = new Employee();
+        // employee.setId(id);
+        // employee.setStatus(status);
+
+        // 写法二：使用建造者模式
+        Employee employee = Employee.builder()
+                .id(id)
+                .status(status)
+                .build();
+
+        employeeMapper.update(employee);
+    }
 }
