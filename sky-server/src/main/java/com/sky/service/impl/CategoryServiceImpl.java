@@ -7,12 +7,15 @@ import com.sky.dto.CategoryDTO;
 import com.sky.dto.CategoryPageQueryDTO;
 import com.sky.entity.Category;
 import com.sky.mapper.CategoryMapper;
+import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.CategoryService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.parsing.BeanEntry;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +25,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Autowired
     private CategoryMapper categoryMapper;
-
+    @Autowired
+    private DishMapper dishMapper;
+    @Autowired
+    private SetmealMapper setmealMapper;
 
     /**
      * 新增分类
@@ -61,11 +67,15 @@ public class CategoryServiceImpl implements CategoryService {
     /**
      * 根据id删除分类
      * 并关联删除该分类下所关联的菜品或套餐
+     * 需要用到 事务管理
      * @param id
      */
+    @Transactional
     public void deleteById(Long id) {
-        // TODO 删除分类下
         categoryMapper.deleteById(id);
+        dishMapper.deleteByCategoryId(id);
+        setmealMapper.deleteByCategoryId(id);
+        // TODO 是否还需要删除setmeal_dish表内的相关记录？
     }
 
 
