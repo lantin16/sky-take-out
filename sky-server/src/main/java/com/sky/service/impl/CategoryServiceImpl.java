@@ -2,10 +2,13 @@ package com.sky.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.CategoryDTO;
 import com.sky.dto.CategoryPageQueryDTO;
 import com.sky.entity.Category;
+import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.CategoryMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealMapper;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -46,7 +50,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setUpdateTime(LocalDateTime.now());
         category.setUpdateUser(BaseContext.getCurrentId());
         // 新添加的分类状态默认为“禁用”
-        category.setStatus(0);
+        category.setStatus(StatusConstant.DISABLE);
 
         categoryMapper.insert(category);
     }
@@ -68,17 +72,27 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 根据id删除分类
-     * 并关联删除该分类下所关联的菜品或套餐
-     * 需要用到 事务管理
+     * 如果该分类下存在关联的菜品或套餐，则应该抛出业务异常，不能删除
      *
      * @param id
      */
-    @Transactional
     public void deleteById(Long id) {
+        // 查询当前分类是否关联了菜品，如果关联了就抛出业务异常
+        Integer count = dishMapper.countByCategoryId(id);
+        if (count > 0) {
+            // 当前分类下有菜品，不能删除，抛出异常
+            throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_DISH);
+        }
+
+        // 查询当前分类是否关联了套餐，如果关联了就抛出业务异常
+        count = setmealMapper.countByCategoryId(id);
+        if (count > 0) {
+            // 当前分类下有套餐，不能删除，抛出异常
+            throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
+        }
+
+        // 如果分类下没有关联菜品或套餐，则成功删除该分类
         categoryMapper.deleteById(id);
-        dishMapper.deleteByCategoryId(id);
-        setmealMapper.deleteByCategoryId(id);
-        // TODO 是否还需要删除setmeal_dish表内的相关记录？
     }
 
 
@@ -108,7 +122,20 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = Category.builder()
                 .id(id)
                 .status(status)
+                .updateTime(LocalDateTime.now())
+                .updateUser(BaseContext.getCurrentId())
                 .build();
         categoryMapper.update(category);
+    }
+
+
+    /**
+     * 根据类型查询已启用的分类（类型参数非必须）
+     *
+     * @param type
+     * @return
+     */
+    public List<Category> list(Integer type) {
+        return categoryMapper.list(type);
     }
 }
