@@ -32,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 新增分类
+     *
      * @param categoryDTO
      */
     public void save(CategoryDTO categoryDTO) {
@@ -53,6 +54,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 分类分页查询
+     *
      * @param categoryPageQueryDTO
      * @return
      */
@@ -68,6 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
      * 根据id删除分类
      * 并关联删除该分类下所关联的菜品或套餐
      * 需要用到 事务管理
+     *
      * @param id
      */
     @Transactional
@@ -81,6 +84,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 修改分类
+     *
      * @param categoryDTO
      */
     public void update(CategoryDTO categoryDTO) {
@@ -90,6 +94,21 @@ public class CategoryServiceImpl implements CategoryService {
         category.setUpdateTime(LocalDateTime.now());
         category.setUpdateUser(BaseContext.getCurrentId());
 
+        categoryMapper.update(category);
+    }
+
+
+    /**
+     * 启用禁用分类
+     *
+     * @param status 要设置的分类状态
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id) {
+        Category category = Category.builder()
+                .id(id)
+                .status(status)
+                .build();
         categoryMapper.update(category);
     }
 }
