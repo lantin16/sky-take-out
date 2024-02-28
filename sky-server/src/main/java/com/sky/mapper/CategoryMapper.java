@@ -35,4 +35,10 @@ public interface CategoryMapper {
      */
     @Delete("delete from category where id = #{id}")
     void deleteById(Long id);
+
+    /**
+     * 修改分类信息
+     * @param category
+     */
+    void update(Category category);
 }

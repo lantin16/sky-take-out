@@ -24,4 +24,11 @@ public interface CategoryService {
      * @param id
      */
     void deleteById(Long id);
+
+
+    /**
+     * 修改分类
+     * @param categoryDTO
+     */
+    void update(CategoryDTO categoryDTO);
 }
