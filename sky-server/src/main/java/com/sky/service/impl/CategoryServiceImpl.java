@@ -53,7 +53,16 @@ public class CategoryServiceImpl implements CategoryService {
     public PageResult pageQuery(CategoryPageQueryDTO categoryPageQueryDTO) {
         PageHelper.startPage(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());
         Page<Category> page = categoryMapper.pageQuery(categoryPageQueryDTO);
-        PageResult pageResult = new PageResult(page.getTotal(), page.getResult()); // TODO 这样写行不行
+        PageResult pageResult = new PageResult(page.getTotal(), page.getResult());
         return pageResult;
+    }
+
+
+    /**
+     * 根据id删除分类
+     * @param id
+     */
+    public void deleteById(Long id) {
+        categoryMapper.deleteById(id);
     }
 }
