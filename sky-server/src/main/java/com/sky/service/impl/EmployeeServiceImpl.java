@@ -89,13 +89,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setStatus(StatusConstant.ENABLE);
         // 设置密码,默认为123456，并且还需要进行MD5加密
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
+
+        // 已经通过切片实现了公共字段自动填充，这里就不需要手动设置了
         // 设置创建时间和更新时间
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime(LocalDateTime.now());
+        // employee.setCreateTime(LocalDateTime.now());
+        // employee.setUpdateTime(LocalDateTime.now());
         // 设置创建人和更新人的id
         // 这里的创建人和更新人的id应该是当前登录的用户的id，从ThreadLocal中获取之前jwt拦截器存入的员工id
-        employee.setCreateUser(BaseContext.getCurrentId());
-        employee.setUpdateUser(BaseContext.getCurrentId());
+        // employee.setCreateUser(BaseContext.getCurrentId());
+        // employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.insert(employee);
     }
@@ -138,8 +140,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = Employee.builder()
                 .id(id)
                 .status(status)
-                .updateTime(LocalDateTime.now())
-                .updateUser(BaseContext.getCurrentId())
+                // .updateTime(LocalDateTime.now())
+                // .updateUser(BaseContext.getCurrentId())
                 .build();
 
         employeeMapper.update(employee);
@@ -170,8 +172,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         BeanUtils.copyProperties(employeeDTO, employee);
 
         // 设置更新时间和更新人id
-        employee.setUpdateTime(LocalDateTime.now());
-        employee.setUpdateUser(BaseContext.getCurrentId());
+        // employee.setUpdateTime(LocalDateTime.now());
+        // employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.update(employee);
     }
