@@ -6,3 +6,10 @@ sky:
     database: sky_take_out
     username: root
     password: 123456
+  qcloud-cos:
+    secret-id: AKIDpvjdS8dy79Skqsr0tobGkCi9X3iN7oMh
+    secret-key: OzSpH0kO1iEc6Z8pbTSNxhQ3mTSK6h7J
+    region: ap-nanjing
+    bucket-name: web-lantin-1324145344
+    folder: image/sky/
+    url: https://web-lantin-1324145344.cos.ap-nanjing.myqcloud.com

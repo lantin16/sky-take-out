@@ -131,7 +131,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 根据类型查询已启用的分类（类型参数非必须）
-     *
+     * 新增菜品或套餐的下拉框会用到
      * @param type
      * @return
      */

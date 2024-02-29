@@ -3,4 +3,12 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.sky.mapper.DishMapper">
 
+    <!--    useGeneratedKeys属性用于指定是否使用插入时自动生成的主键，keyProperty属性用于指定将生成的主键值赋给传进来的对象的属性名-->
+    <!--    这样就可以在插入数据后，让对象也获取到插入数据的主键值-->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into dish
+        (name, category_id, price, image, description, status, create_time, update_time, create_user, update_user)
+        values (#{name}, #{categoryId}, #{price}, #{image}, #{description}, #{status}, #{createTime}, #{updateTime},
+                #{createUser}, #{updateUser})
+    </insert>
 </mapper>
