@@ -114,7 +114,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 启用禁用分类
-     *
+     * TODO 若禁用分类那么分类下的菜品是不是也需要禁用？
      * @param status 要设置的分类状态
      * @param id
      */

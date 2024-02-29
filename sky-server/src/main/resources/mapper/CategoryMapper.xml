@@ -16,6 +16,7 @@
         order by sort asc, create_time desc
     </select>
 
+    <!--    注意：公共字段的自动填充只是将字段的值填充到对象中，这里在sql语句中仍然需要手动将对象的属性值赋值给数据表的对应字段-->
     <update id="update">
         update category
         <set>
