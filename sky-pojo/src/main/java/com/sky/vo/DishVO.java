@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 由于菜品分类名称是Dish中没有的，但是又要返回给前端展示，因此这里新建一个VO类
+ */
+
 @Data
 @Builder
 @NoArgsConstructor

@@ -11,4 +11,23 @@
         values (#{name}, #{categoryId}, #{price}, #{image}, #{description}, #{status}, #{createTime}, #{updateTime},
                 #{createUser}, #{updateUser})
     </insert>
+
+    <!--    由于分类名称在category表中，所以需要使用联表查询，使用外连接-->
+    <!--    为了保证查询结果能够正确封装到DishVO对象中，需要对c.name起别名，否则会出现name字段名重复的问题，导致封装错误-->
+    <select id="pageQuery" resultType="com.sky.vo.DishVO">
+        select d.*, c.name as category_name
+        from dish d left join category c on d.category_id = c.id
+        <where>
+            <if test="name != null and name != ''">
+                d.name like concat('%', #{name}, '%')
+            </if>
+            <if test="status != null">
+                and d.status = #{status}
+            </if>
+            <if test="categoryId != null">
+                and d.category_id = #{categoryId}
+            </if>
+        </where>
+        order by d.create_time desc
+    </select>
 </mapper>
