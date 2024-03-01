@@ -6,9 +6,11 @@ import com.sky.constant.MessageConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
+import com.sky.entity.Category;
 import com.sky.entity.Setmeal;
 import com.sky.entity.SetmealDish;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.mapper.CategoryMapper;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
@@ -28,6 +30,8 @@ public class SetmealServiceImpl implements SetmealService {
     private SetmealMapper setmealMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private CategoryMapper categoryMapper;
 
     /**
      * 新增套餐以及其包含的菜品关系
@@ -68,6 +72,7 @@ public class SetmealServiceImpl implements SetmealService {
      * 在售状态下，不可删除套餐
      * @param ids
      */
+    @Transactional
     public void deleteBatch(List<Long> ids) {
         // 查询套餐表，ids中是否存在在售的套餐id
         for (Long id : ids) {
@@ -81,5 +86,29 @@ public class SetmealServiceImpl implements SetmealService {
         setmealMapper.deleteBatch(ids);
         // 删除套餐餐品表中相应的关联数据
         setmealDishMapper.deleteBySetmealIds(ids);
+    }
+
+    /**
+     * 根据id查询套餐以及包含的菜品信息
+     * @param id
+     * @return
+     */
+    public SetmealVO getByIdWithDish(Long id) {
+        // 查询套餐基本信息
+        Setmeal setmeal = setmealMapper.getById(id);
+
+        // 获取套餐所属分类的名称
+        Category category = categoryMapper.getById(setmeal.getCategoryId());
+
+        // 查询套餐包含的菜品信息
+        List<SetmealDish> setmealDishes = setmealDishMapper.getBySetmealId(id);
+
+        // 将查询到的数据封装到VO对象中
+        SetmealVO setmealVO = new SetmealVO();
+        BeanUtils.copyProperties(setmeal, setmealVO);
+        setmealVO.setCategoryName(category.getName());
+        setmealVO.setSetmealDishes(setmealDishes);
+
+        return setmealVO;
     }
 }
