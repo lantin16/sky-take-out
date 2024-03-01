@@ -71,6 +71,7 @@ public class SetmealController {
 
     /**
      * 根据id查询套餐以及包含的菜品信息
+     * 用于套餐修改页面信息的回显
      * @param id
      * @return
      */
@@ -80,5 +81,19 @@ public class SetmealController {
         log.info("根据id查询套餐：id={}", id);
         SetmealVO setmealVO = setmealService.getByIdWithDish(id);
         return Result.success(setmealVO);
+    }
+
+
+    /**
+     * 修改套餐及包含菜品信息
+     * @param setmealDTO
+     * @return
+     */
+    @PutMapping
+    @ApiOperation("修改套餐")
+    public Result update(@RequestBody SetmealDTO setmealDTO) {
+        log.info("修改套餐：setmealDTO={}", setmealDTO);
+        setmealService.updateWithDish(setmealDTO);
+        return Result.success();
     }
 }
