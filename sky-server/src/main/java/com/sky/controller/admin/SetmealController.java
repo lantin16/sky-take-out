@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @Slf4j
 @RestController
@@ -49,4 +51,18 @@ public class SetmealController {
         PageResult pageResult = setmealService.pageQuery(setmealPageQueryDTO);
         return Result.success(pageResult);
     }
+
+
+    /**
+     * 批量删除套餐
+     * TODO 启售停售做了后一块测试
+     * @param ids
+     * @return
+     */
+    public Result delete(@RequestParam List<Long> ids) {
+        log.info("批量删除套餐：ids={}", ids);
+        setmealService.deleteBatch(ids);
+        return Result.success();
+    }
+
 }
