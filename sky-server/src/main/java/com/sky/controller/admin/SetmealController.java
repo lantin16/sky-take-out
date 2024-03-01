@@ -56,7 +56,6 @@ public class SetmealController {
 
     /**
      * 批量删除套餐
-     * TODO 启售停售做了后一块测试
      * @param ids
      * @return
      */
@@ -94,6 +93,21 @@ public class SetmealController {
     public Result update(@RequestBody SetmealDTO setmealDTO) {
         log.info("修改套餐：setmealDTO={}", setmealDTO);
         setmealService.updateWithDish(setmealDTO);
+        return Result.success();
+    }
+
+
+    /**
+     * 套餐启售停售
+     * @param status
+     * @param id
+     * @return
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation("套餐启售停售")
+    public Result startOrStop(@PathVariable Integer status, Long id) {
+        log.info("套餐启售停售：status={}, id={}", status, id);
+        setmealService.startOrStop(status, id);
         return Result.success();
     }
 }

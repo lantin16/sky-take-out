@@ -111,7 +111,6 @@ public class DishController {
 
     /**
      * 菜品启售停售
-     * TODO 待测试（无套餐信息）
      *
      * @param status
      * @param id
@@ -124,4 +123,7 @@ public class DishController {
         dishService.startOrStop(status, id);
         return Result.success();
     }
+
+
+
 }
