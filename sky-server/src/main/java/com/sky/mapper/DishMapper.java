@@ -71,4 +71,11 @@ public interface DishMapper {
      */
     @AutoFill(OperationType.UPDATE)
     void update(Dish dish);
+
+    /**
+     * 根据分类id查询启售的菜品
+     * @param categoryId
+     * @return
+     */
+    List<Dish> list(Integer categoryId);
 }

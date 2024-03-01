@@ -163,4 +163,15 @@ public class DishServiceImpl implements DishService {
             dishFlavorMapper.insertBatch(dishFlavors);
         }
     }
+
+
+    /**
+     * 根据分类id查询启售的菜品
+     * 新增套餐时添加菜品的下拉框会调用
+     * @param categoryId
+     * @return
+     */
+    public List<Dish> list(Integer categoryId) {
+        return dishMapper.list(categoryId);
+    }
 }
