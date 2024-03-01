@@ -8,11 +8,9 @@ import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
+import com.sky.entity.Setmeal;
 import com.sky.exception.DeletionNotAllowedException;
-import com.sky.mapper.CategoryMapper;
-import com.sky.mapper.DishFlavorMapper;
-import com.sky.mapper.DishMapper;
-import com.sky.mapper.SetmealDishMapper;
+import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
@@ -21,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -32,6 +31,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private SetmealMapper setmealMapper;
 
     /**
      * 新增菜品，并且还需要保存关联的菜品口味
@@ -118,6 +119,7 @@ public class DishServiceImpl implements DishService {
 
     /**
      * 根据id查询菜品和对应的口味数据
+     *
      * @param id
      * @return
      */
@@ -140,6 +142,7 @@ public class DishServiceImpl implements DishService {
      * 修改菜品基本信息和对应的口味信息
      * 口味的更新可能新增、删除、修改，分开处理比较麻烦
      * 可以统一处理：先删除该菜品原有的口味数据，然后再插入本次更新传来的口味数据
+     *
      * @param dishDTO
      */
     @Transactional
@@ -168,10 +171,42 @@ public class DishServiceImpl implements DishService {
     /**
      * 根据分类id查询启售的菜品
      * 新增套餐时添加菜品的下拉框会调用
+     *
      * @param categoryId
      * @return
      */
     public List<Dish> list(Integer categoryId) {
         return dishMapper.list(categoryId);
+    }
+
+    /**
+     * 菜品启售停售
+     * 菜品停售，则包含菜品的套餐同时停售
+     *
+     * @param status
+     * @param id
+     */
+    @Transactional
+    public void startOrStop(Integer status, Long id) {
+        Dish dish = Dish.builder()
+                .id(id)
+                .status(status)
+                .build();
+        // 更新菜品状态
+        dishMapper.update(dish);
+
+        // 菜品停售，则包含菜品的套餐同时停售
+        if (status == StatusConstant.DISABLE) {
+            // 查询套餐菜品表，获取与菜品相关的套餐ids
+            List<Long> setmealIds = setmealDishMapper.getSetmealIdsByDishId(id);
+            // 对包含该停售菜品的套餐也进行停售
+            for (Long setmealId : setmealIds) {
+                Setmeal setmeal = Setmeal.builder()
+                        .id(setmealId)
+                        .status(StatusConstant.DISABLE)
+                        .build();
+                setmealMapper.update(setmeal);
+            }
+        }
     }
 }

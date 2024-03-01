@@ -114,6 +114,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 启用禁用分类
+     * 分类被禁用后，前台不展示
      * TODO 若禁用分类那么分类下的菜品是不是也需要禁用？
      * @param status 要设置的分类状态
      * @param id
@@ -131,6 +132,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     /**
      * 根据类型查询已启用的分类（类型参数非必须）
+     * 分类被禁用后，前台不展示
      * 新增菜品或套餐的下拉框会调用
      * @param type
      * @return
