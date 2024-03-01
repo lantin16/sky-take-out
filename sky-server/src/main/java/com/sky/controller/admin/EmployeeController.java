@@ -108,7 +108,6 @@ public class EmployeeController {
 
     /**
      * 启用或停用员工
-     * TODO 本质是修改状态属性，接口文档为什么用POST请求而不是PUT请求？
      * @param status 状态，路径参数
      * @param id 启用或停用的员工id
      * @return
