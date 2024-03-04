@@ -73,8 +73,17 @@
     <select id="list" resultType="com.sky.entity.Dish">
         select *
         from dish
-        where category_id = #{categoryId}
-          and status = 1
+        <where>
+            <if test="categoryId != null">
+                category_id = #{categoryId}
+            </if>
+            <if test="name != null">
+                and name like concat('%', #{name}, '%')
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
         order by create_time desc
     </select>
 </mapper>

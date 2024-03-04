@@ -53,7 +53,7 @@ public interface DishService {
      * @param categoryId
      * @return
      */
-    List<Dish> list(Integer categoryId);
+    List<Dish> list(Long categoryId);
 
     /**
      * 菜品启售停售

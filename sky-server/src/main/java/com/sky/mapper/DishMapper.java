@@ -73,9 +73,9 @@ public interface DishMapper {
     void update(Dish dish);
 
     /**
-     * 根据分类id查询启售的菜品
-     * @param categoryId
+     * 动态条件查询菜品
+     * @param dish
      * @return
      */
-    List<Dish> list(Integer categoryId);
+    List<Dish> list(Dish dish);
 }

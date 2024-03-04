@@ -160,12 +160,14 @@ public class SetmealServiceImpl implements SetmealService {
         // 如果该套餐想启售，则需要检查该套餐内是否有停售菜品
         if (status == StatusConstant.ENABLE) {
             List<SetmealDish> setmealDishes = setmealDishMapper.getBySetmealId(id);
-            for (SetmealDish setmealDish : setmealDishes) {
-                Long dishId = setmealDish.getDishId();
-                // 查询菜品表，若该菜品处于停售状态，则抛出套餐启用失败异常
-                Dish dish = dishMapper.getById(dishId);
-                if (dish.getStatus() == StatusConstant.DISABLE) {
-                    throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
+            if (setmealDishes != null && setmealDishes.size() > 0) {
+                for (SetmealDish setmealDish : setmealDishes) {
+                    Long dishId = setmealDish.getDishId();
+                    // 查询菜品表，若该菜品处于停售状态，则抛出套餐启用失败异常
+                    Dish dish = dishMapper.getById(dishId);
+                    if (dish.getStatus() == StatusConstant.DISABLE) {
+                        throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
+                    }
                 }
             }
         }
