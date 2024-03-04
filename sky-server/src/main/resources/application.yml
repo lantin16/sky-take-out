@@ -42,6 +42,12 @@ sky:
     admin-ttl: 14400000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
+    # 设置jwt签名加密时使用的秘钥
+    user-secret-key: skylantin
+    # 设置jwt过期时间（ms）
+    user-ttl: 14400000
+    # 设置前端传递过来的令牌名称
+    user-token-name: authentication
   # 腾讯云COS配置（为了便于在多种环境下的扩展，这里不直接配置而是采用引用的形式）
   qcloud-cos:
     secret-id: ${sky.qcloud-cos.secret-id}
@@ -50,3 +56,6 @@ sky:
     bucket-name: ${sky.qcloud-cos.bucket-name}
     folder: ${sky.qcloud-cos.folder}
     url: ${sky.qcloud-cos.url}
+  wechat:
+    appid: ${sky.wechat.appid}
+    secret: ${sky.wechat.secret}
