@@ -7,16 +7,25 @@ import com.sky.service.SetmealService;
 import com.sky.vo.DishItemVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
+/**
+ * 利用Spring Cache实现套餐数据的缓存
+ * Spring Cache是Spring框架提供的一套缓存管理的解决方案，它提供了一套简单的缓存注解，可以方便的实现缓存的功能。
+ * 比直接使用RedisTemplate编码更加方便，不需要手动去操作Redis，只需要在方法上添加对应的注解即可。
+ */
+
 @RestController("userSetmealController")
 @RequestMapping("/user/setmeal")
 @Api(tags = "C端-套餐浏览接口")
+@Slf4j
 public class SetmealController {
     @Autowired
     private SetmealService setmealService;
@@ -29,7 +38,9 @@ public class SetmealController {
      */
     @GetMapping("/list")
     @ApiOperation("根据分类id查询套餐")
+    @Cacheable(cacheNames = "setmealCache", key = "#categoryId")    // key：setmealCache::100
     public Result<List<Setmeal>> list(Long categoryId) {
+        log.info("根据分类id查询套餐，categoryId={}", categoryId);
         Setmeal setmeal = new Setmeal();
         setmeal.setCategoryId(categoryId);
         setmeal.setStatus(StatusConstant.ENABLE);
