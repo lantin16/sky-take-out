@@ -80,4 +80,12 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 .build();
         return shoppingCartMapper.list(shoppingCart);
     }
+
+    /**
+     * 清空购物车
+     */
+    public void cleanShoppingCart() {
+        Long userId = BaseContext.getCurrentId();   // 获取当前登录的用户id
+        shoppingCartMapper.deleteByUserId(userId);
+    }
 }
