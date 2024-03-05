@@ -24,7 +24,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/user/user")   // 前一个user代表是用户端的请求，后一个user代表用户模块
 @Slf4j
-@Api(tags = "C端用户相关接口")
+@Api(tags = "C端-用户相关接口")
 public class UserController {
 
     @Autowired
