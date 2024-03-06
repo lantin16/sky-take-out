@@ -1,25 +1,25 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
-import com.sky.entity.AddressBook;
-import com.sky.entity.OrderDetail;
-import com.sky.entity.Orders;
-import com.sky.entity.ShoppingCart;
+import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
+import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
-import com.sky.mapper.AddressBookMapper;
-import com.sky.mapper.OrderDetailMapper;
-import com.sky.mapper.OrderMapper;
-import com.sky.mapper.ShoppingCartMapper;
+import com.sky.mapper.*;
 import com.sky.service.OrderService;
+import com.sky.utils.WeChatPayUtil;
+import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +35,10 @@ public class OrderServiceImpl implements OrderService {
     private AddressBookMapper addressBookMapper;
     @Autowired
     private ShoppingCartMapper shoppingCartMapper;
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
+    private WeChatPayUtil weChatPayUtil;
 
     /**
      * 用户下单
@@ -100,5 +104,103 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         return orderSubmitVO;
+    }
+
+
+    /**
+     * 订单支付（测试用）
+     * 由于个人无法申请微信支付，为测试方便跳过微信支付环节，直接修改订单状态
+     * 小程序端也注释掉了调起微信支付的相关代码，直接调转到支付成功页面
+     *
+     * @param ordersPaymentDTO
+     * @return
+     */
+    public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+        // 当前登录用户id
+        Long userId = BaseContext.getCurrentId();
+        User user = userMapper.getById(userId);
+
+        /*
+        // 由于个人无法申请微信支付，为测试方便将此代码注释
+        //调用微信支付接口，生成预支付交易单
+        JSONObject jsonObject = weChatPayUtil.pay(
+                ordersPaymentDTO.getOrderNumber(), //商户订单号
+                new BigDecimal(0.01), //支付金额，单位 元
+                "苍穹外卖订单", //商品描述
+                user.getOpenid() //微信用户的openid
+        );
+
+        if (jsonObject.getString("code") != null && jsonObject.getString("code").equals("ORDERPAID")) {
+            throw new OrderBusinessException("该订单已支付");
+        }
+         */
+
+        // 为测试方便，跳过微信支付，直接在这里更新订单状态
+        Orders orderDB = orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber());
+        orderDB.setStatus(Orders.TO_BE_CONFIRMED);  // 订单状态改为待接单
+        orderDB.setPayStatus(Orders.PAID);  // 支付状态改为已支付
+        orderDB.setCheckoutTime(LocalDateTime.now());  // 结账时间
+        orderMapper.update(orderDB);
+
+        // 模拟微信支付成功返回的json（其实这里面的key，value都是空的）
+        JSONObject jsonObject = new JSONObject();
+        OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
+        vo.setPackageStr(jsonObject.getString("package"));
+
+        return vo;
+    }
+
+
+    /**
+     * 订单支付
+     * 实现了真实的微信支付，测试时用不到
+     *
+     * @param ordersPaymentDTO
+     * @return
+     */
+    // public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+    //     // 当前登录用户id
+    //     Long userId = BaseContext.getCurrentId();
+    //     User user = userMapper.getById(userId);
+    //
+    //     //调用微信支付接口，生成预支付交易单
+    //     JSONObject jsonObject = weChatPayUtil.pay(
+    //             ordersPaymentDTO.getOrderNumber(), //商户订单号
+    //             new BigDecimal(0.01), //支付金额，单位 元
+    //             "苍穹外卖订单", //商品描述
+    //             user.getOpenid() //微信用户的openid
+    //     );
+    //
+    //     if (jsonObject.getString("code") != null && jsonObject.getString("code").equals("ORDERPAID")) {
+    //         throw new OrderBusinessException("该订单已支付");
+    //     }
+    //
+    //     OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
+    //     vo.setPackageStr(jsonObject.getString("package"));
+    //
+    //     return vo;
+    // }
+
+
+    /**
+     * 支付成功，修改订单状态
+     * 测试时由于跳过了微信支付，因此微信后台并不会支付成功回调对应的接口，所以这里也不会执行
+     *
+     * @param outTradeNo
+     */
+    public void paySuccess(String outTradeNo) {
+
+        // 根据订单号查询订单
+        Orders ordersDB = orderMapper.getByNumber(outTradeNo);
+
+        // 根据订单id更新订单的状态、支付方式、支付状态、结账时间
+        Orders orders = Orders.builder()
+                .id(ordersDB.getId())
+                .status(Orders.TO_BE_CONFIRMED)
+                .payStatus(Orders.PAID)
+                .checkoutTime(LocalDateTime.now())
+                .build();
+
+        orderMapper.update(orders);
     }
 }
