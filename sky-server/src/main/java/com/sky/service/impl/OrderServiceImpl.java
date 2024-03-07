@@ -441,29 +441,64 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
 
-        /* 由于没有营业执照，微信支付功能并未实现，因此这里的退款功能也无法实现，测试功能时可以将退款部分代码注释掉，直接更新状态
-
-        Integer payStatus = orderDB.getPayStatus(); //支付状态
-        if (payStatus == Orders.PAID) {
+        Orders order = new Orders();
+        if (orderDB.getPayStatus().equals(Orders.PAID)) {
             //用户已支付，需要退款
+            /* 由于没有营业执照，微信支付功能并未实现，因此这里的退款功能也无法实现，测试功能时可以将退款部分代码注释掉，直接更新状态
             String refund = weChatPayUtil.refund(
                     orderDB.getNumber(),
                     orderDB.getNumber(),
                     new BigDecimal(0.01),
                     new BigDecimal(0.01));
             log.info("申请退款：{}", refund);
+             */
+            order.setPayStatus(Orders.REFUND);  // 支付状态改为退款
         }
 
-         */
+        // 根据订单id更新订单状态、拒单原因、取消时间
+        order.setId(orderId);
+        order.setStatus(Orders.CANCELLED);   // 订单状态改为已取消
+        order.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        order.setCancelTime(LocalDateTime.now());
+
+        orderMapper.update(order);
+    }
+
+
+    /**
+     * 商家取消订单
+     * 取消订单后订单状态变为已取消，且需要注明取消原因
+     * 如果用户完成了支付，商家还需要为用户退款
+     * @param ordersCancelDTO
+     */
+    public void cancel(OrdersCancelDTO ordersCancelDTO) {
+        Long orderId = ordersCancelDTO.getId();
+        Orders orderDB = orderMapper.getById(orderId);
+
+        // 如果订单不存在，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Orders order = new Orders();
+        if (orderDB.getPayStatus().equals(Orders.PAID)) {
+            //用户已支付，需要退款
+            /* 由于没有营业执照，微信支付功能并未实现，因此这里的退款功能也无法实现，测试功能时可以将退款部分代码注释掉，直接更新状态
+            String refund = weChatPayUtil.refund(
+                    orderDB.getNumber(),
+                    orderDB.getNumber(),
+                    new BigDecimal(0.01),
+                    new BigDecimal(0.01));
+            log.info("申请退款：{}", refund);
+             */
+            order.setPayStatus(Orders.REFUND);
+        }
 
         // 根据订单id更新订单状态、拒单原因、取消时间
-        Orders order = Orders.builder()
-                .id(orderId)
-                .status(Orders.CANCELLED)   // 订单状态改为已取消
-                .rejectionReason(ordersRejectionDTO.getRejectionReason())
-                .payStatus(Orders.REFUND)   // 支付状态改为退款
-                .cancelTime(LocalDateTime.now())
-                .build();
+        order.setId(orderId);
+        order.setStatus(Orders.CANCELLED);   // 订单状态改为已取消
+        order.setCancelReason(ordersCancelDTO.getCancelReason());
+        order.setCancelTime(LocalDateTime.now());
 
         orderMapper.update(order);
     }
