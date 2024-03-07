@@ -502,4 +502,31 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.update(order);
     }
+
+    /**
+     * 派送订单
+     * 只有已接单的订单才能派送
+     * @param id
+     */
+    public void delivery(Long id) {
+        Orders orderDB = orderMapper.getById(id);
+
+        // 如果订单不存在，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Integer status = orderDB.getStatus();
+        // 如果订单此前不是已接单状态，抛出业务异常
+        if (!status.equals(Orders.CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders order = Orders.builder()
+                .id(id)
+                .status(Orders.DELIVERY_IN_PROGRESS)    // 订单状态改为派送中
+                .build();
+
+        orderMapper.update(order);
+    }
 }
