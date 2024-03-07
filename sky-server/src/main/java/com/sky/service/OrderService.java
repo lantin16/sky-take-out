@@ -39,7 +39,7 @@ public interface OrderService {
     PageResult historyOrdersList4User(OrdersPageQueryDTO ordersPageQueryDTO);
 
     /**
-     * 用户查询订单详情
+     * 查询订单详情
      * @param id
      * @return
      */

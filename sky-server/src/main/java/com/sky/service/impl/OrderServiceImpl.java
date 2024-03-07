@@ -243,7 +243,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 用户查询订单详情
+     * 查询订单详情
      * @param id 订单id
      * @return
      */
@@ -254,10 +254,14 @@ public class OrderServiceImpl implements OrderService {
         // 查询订单明细
         List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
 
+        // 查询订单包含的菜品信息字符串
+        String orderDishes = getOrderDishesStringByOrderId(id);
+
         // 封装成VO返回
         OrderVO orderVO = new OrderVO();
         BeanUtils.copyProperties(order, orderVO);
         orderVO.setOrderDetailList(orderDetailList);
+        orderVO.setOrderDishes(orderDishes);
 
         return orderVO;
     }
