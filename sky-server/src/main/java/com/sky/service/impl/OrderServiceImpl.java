@@ -529,4 +529,31 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.update(order);
     }
+
+    /**
+     * 完成订单
+     * 只有派送中的订单才能完成
+     * @param id
+     */
+    public void complete(Long id) {
+        Orders orderDB = orderMapper.getById(id);
+
+        // 如果订单不存在，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Integer status = orderDB.getStatus();
+        // 如果订单此前不是派送中状态，抛出业务异常
+        if (!status.equals(Orders.DELIVERY_IN_PROGRESS)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders order = Orders.builder()
+                .id(id)
+                .status(Orders.COMPLETED)    // 订单状态改为已完成
+                .build();
+
+        orderMapper.update(order);
+    }
 }
