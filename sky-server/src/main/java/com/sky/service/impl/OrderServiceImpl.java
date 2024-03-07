@@ -552,6 +552,7 @@ public class OrderServiceImpl implements OrderService {
         Orders order = Orders.builder()
                 .id(id)
                 .status(Orders.COMPLETED)    // 订单状态改为已完成
+                .deliveryTime(LocalDateTime.now())   // 派送时间
                 .build();
 
         orderMapper.update(order);
