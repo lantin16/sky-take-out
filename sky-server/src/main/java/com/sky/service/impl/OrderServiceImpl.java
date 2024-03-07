@@ -331,4 +331,46 @@ public class OrderServiceImpl implements OrderService {
         // 将购物车数据插入到购物车表
         shoppingCartMapper.insertBatch(shoppingCartList);
     }
+
+
+    /**
+     * 商家后台：分页条件查询订单
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    public PageResult conditionSearch4Admin(OrdersPageQueryDTO ordersPageQueryDTO) {
+
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+
+        List<Orders> ordersList = page.getResult();
+        List<OrderVO> orderVOList = new ArrayList<>();
+
+        for (Orders order: ordersList) {
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(order, orderVO);
+            String orderDishes = getOrderDishesStringByOrderId(order.getId());  // 获取订单包含的商品的字符串
+            orderVO.setOrderDishes(orderDishes);
+            orderVOList.add(orderVO);
+        }
+
+        PageResult pageResult = new PageResult(page.getTotal(), orderVOList);
+        return pageResult;
+    }
+
+    /**
+     * 根据订单id查询订单包含的商品并生成字符串返回
+     * 商品字符串格式为：宫保鸡丁* 3；红烧带鱼* 2；农家小炒肉* 1；
+     * @param orderId
+     * @return
+     */
+    private String getOrderDishesStringByOrderId(Long orderId) {
+        String orderDishes = "";    // 订单包含的菜品，以字符串的形式展示
+        // 查询订单明细获取包含的菜品
+        List<OrderDetail> orderDetails = orderDetailMapper.getByOrderId(orderId);
+        for (OrderDetail orderDetail : orderDetails) {
+            orderDishes += orderDetail.getName() + "*" + orderDetail.getNumber() + "；";
+        }
+        return orderDishes;
+    }
 }
