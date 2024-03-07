@@ -5,10 +5,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersConfirmDTO;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
@@ -23,8 +20,10 @@ import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -409,7 +408,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 接单
-     *
+     * 商家接单后订单状态变为待派送
      * @param ordersConfirmDTO
      */
     public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
@@ -417,6 +416,55 @@ public class OrderServiceImpl implements OrderService {
                 .id(ordersConfirmDTO.getId())
                 .status(Orders.CONFIRMED)
                 .build();
+        orderMapper.update(order);
+    }
+
+    /**
+     * 拒单
+     * 商家拒单后订单状态变为已取消
+     * 拒单需要填写拒单原因，且只有待接单的订单才能拒单
+     * 如果用户完成了支付，商家还需要为用户退款
+     * @param ordersRejectionDTO
+     */
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
+        Long orderId = ordersRejectionDTO.getId();
+
+        // 查询该订单
+        Orders orderDB = orderMapper.getById(orderId);
+
+        // 如果该订单不存在或不处于待接单状态，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        if (!orderDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        /* 由于没有营业执照，微信支付功能并未实现，因此这里的退款功能也无法实现，测试功能时可以将退款部分代码注释掉，直接更新状态
+
+        Integer payStatus = orderDB.getPayStatus(); //支付状态
+        if (payStatus == Orders.PAID) {
+            //用户已支付，需要退款
+            String refund = weChatPayUtil.refund(
+                    orderDB.getNumber(),
+                    orderDB.getNumber(),
+                    new BigDecimal(0.01),
+                    new BigDecimal(0.01));
+            log.info("申请退款：{}", refund);
+        }
+
+         */
+
+        // 根据订单id更新订单状态、拒单原因、取消时间
+        Orders order = Orders.builder()
+                .id(orderId)
+                .status(Orders.CANCELLED)   // 订单状态改为已取消
+                .rejectionReason(ordersRejectionDTO.getRejectionReason())
+                .payStatus(Orders.REFUND)   // 支付状态改为退款
+                .cancelTime(LocalDateTime.now())
+                .build();
+
         orderMapper.update(order);
     }
 }
