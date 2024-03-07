@@ -14,15 +14,18 @@ import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.*;
 import com.sky.result.PageResult;
+import com.sky.result.Result;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
@@ -242,7 +246,7 @@ public class OrderServiceImpl implements OrderService {
      * @param id 订单id
      * @return
      */
-    public OrderVO details4User(Long id) {
+    public OrderVO details(Long id) {
         // 查询订单基本信息
         Orders order = orderMapper.getById(id);
 
@@ -255,5 +259,50 @@ public class OrderServiceImpl implements OrderService {
         orderVO.setOrderDetailList(orderDetailList);
 
         return orderVO;
+    }
+
+
+    /**
+     * 用户取消订单
+     * @param id
+     */
+    public void userCancelOrder(Long id) throws Exception {
+        // 根据id查询订单
+        Orders orderDB = orderMapper.getById(id);
+
+        // 检查订单是否存在
+        // 若订单不存在，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        // 检查订单状态，根据不同状态采取对应操作
+        Integer status = orderDB.getStatus(); //订单状态： 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
+        // 如果订单状态不是待付款或待接单，则需要用户联系商家协商，这里直接抛出业务异常
+        if (!status.equals(Orders.PENDING_PAYMENT) && !status.equals(Orders.TO_BE_CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders order = new Orders();
+        order.setId(orderDB.getId());
+
+        // 若订单状态是待接单，则取消订单的同时还需要退款
+        if (status.equals(Orders.TO_BE_CONFIRMED)) {    // 两个Integer对象用==比较是比的内存地址，想比较值要用equals
+            // 调用微信支付退款接口
+            weChatPayUtil.refund(
+                    orderDB.getNumber(), //商户订单号
+                    orderDB.getNumber(), //商户退款单号
+                    new BigDecimal(0.01),//退款金额，单位 元
+                    new BigDecimal(0.01));//原订单金额
+            // 支付状态修改为退款
+            order.setPayStatus(Orders.REFUND);
+        }
+
+        // 若订单状态是待付款，则可以直接取消订单
+        order.setStatus(Orders.CANCELLED);
+        order.setCancelReason("用户取消订单");
+        order.setCancelTime(LocalDateTime.now());
+
+        orderMapper.update(order);
     }
 }
