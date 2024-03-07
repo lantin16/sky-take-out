@@ -82,7 +82,9 @@ public class OrderServiceImpl implements OrderService {
         orders.setNumber(System.currentTimeMillis() +"-"+userId);   // 订单号就是要当前系统的时间戳+userId
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
-        // TODO address, userName?
+        orders.setAddress(addressBook.getDetail()); // TODO address怎么填？详细地址？or 省市区拼接？
+        orders.setUserName(addressBook.getConsignee()); // 收货人
+        // TODO userName？
 
         orderMapper.insert(orders);
 
@@ -233,5 +235,25 @@ public class OrderServiceImpl implements OrderService {
 
         PageResult pageResult = new PageResult(page.getTotal(), orderVOList);
         return pageResult;
+    }
+
+    /**
+     * 用户查询订单详情
+     * @param id 订单id
+     * @return
+     */
+    public OrderVO details4User(Long id) {
+        // 查询订单基本信息
+        Orders order = orderMapper.getById(id);
+
+        // 查询订单明细
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+
+        // 封装成VO返回
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(order, orderVO);
+        orderVO.setOrderDetailList(orderDetailList);
+
+        return orderVO;
     }
 }

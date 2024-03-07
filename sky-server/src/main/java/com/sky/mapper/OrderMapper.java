@@ -10,6 +10,14 @@ import org.apache.ibatis.annotations.Select;
 public interface OrderMapper {
 
     /**
+     *
+     * @param id
+     * @return
+     */
+    @Select("select * from orders where id = #{id}")
+    Orders getById(Long id);
+
+    /**
      * 插入订单数据
      * 需要返回主键值，因为在订单明细中需要使用订单id
      * @param orders
