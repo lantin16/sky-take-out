@@ -305,4 +305,30 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.update(order);
     }
+
+    /**
+     * 再来一单
+     * 实现逻辑：将原订单的菜品重新加入购物车中
+     * @param id
+     */
+    public void repeatOrder(Long id) {
+        Long userId = BaseContext.getCurrentId();
+
+        // 查询订单明细表获得原订单的菜品明细
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+
+        // 将订单明细对象转换为购物车对象
+        List<ShoppingCart> shoppingCartList = new ArrayList<>();
+        for (OrderDetail orderDetail : orderDetailList) {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            // 将orderDetail中的商品明细数据拷贝到shoppingCart中（除了"id"字段）
+            BeanUtils.copyProperties(orderDetail, shoppingCart, "id");
+            shoppingCart.setUserId(userId);
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            shoppingCartList.add(shoppingCart);
+        }
+
+        // 将购物车数据插入到购物车表
+        shoppingCartMapper.insertBatch(shoppingCartList);
+    }
 }

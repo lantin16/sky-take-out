@@ -98,4 +98,16 @@ public class OrderController {
         orderService.userCancelOrder(id);
         return Result.success();
     }
+
+    /**
+     * 再来一单
+     * @param id 想再来一单的订单id
+     * @return
+     */
+    @PostMapping("/repetition/{id}")
+    public Result repeat(@PathVariable Long id) {
+        log.info("再来一单：订单id={}", id);
+        orderService.repeatOrder(id);
+        return Result.success();
+    }
 }
