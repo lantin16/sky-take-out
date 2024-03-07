@@ -5,6 +5,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersConfirmDTO;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
@@ -84,7 +85,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setOrderTime(LocalDateTime.now());
         orders.setPayStatus(Orders.UN_PAID);    // 未支付
         orders.setStatus(Orders.PENDING_PAYMENT);    // 待付款
-        orders.setNumber(System.currentTimeMillis() +"-"+userId);   // 订单号就是要当前系统的时间戳+userId
+        orders.setNumber(System.currentTimeMillis() + "-" + userId);   // 订单号就是要当前系统的时间戳+userId
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setAddress(addressBook.getDetail()); // TODO address怎么填？详细地址？or 省市区拼接？
@@ -219,6 +220,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 用户历史订单查询
+     *
      * @param ordersPageQueryDTO
      * @return
      */
@@ -244,6 +246,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 查询订单详情
+     *
      * @param id 订单id
      * @return
      */
@@ -269,6 +272,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 用户取消订单
+     *
      * @param id
      */
     public void userCancelOrder(Long id) throws Exception {
@@ -282,7 +286,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 检查订单状态，根据不同状态采取对应操作
-        Integer status = orderDB.getStatus(); //订单状态： 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
+        Integer status = orderDB.getStatus(); // 订单状态： 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
         // 如果订单状态不是待付款或待接单，则需要用户联系商家协商，这里直接抛出业务异常
         if (!status.equals(Orders.PENDING_PAYMENT) && !status.equals(Orders.TO_BE_CONFIRMED)) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
@@ -295,10 +299,10 @@ public class OrderServiceImpl implements OrderService {
         if (status.equals(Orders.TO_BE_CONFIRMED)) {    // 两个Integer对象用==比较是比的内存地址，想比较值要用equals
             // 调用微信支付退款接口
             weChatPayUtil.refund(
-                    orderDB.getNumber(), //商户订单号
-                    orderDB.getNumber(), //商户退款单号
-                    new BigDecimal(0.01),//退款金额，单位 元
-                    new BigDecimal(0.01));//原订单金额
+                    orderDB.getNumber(), // 商户订单号
+                    orderDB.getNumber(), // 商户退款单号
+                    new BigDecimal(0.01),// 退款金额，单位 元
+                    new BigDecimal(0.01));// 原订单金额
             // 支付状态修改为退款
             order.setPayStatus(Orders.REFUND);
         }
@@ -314,6 +318,7 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 再来一单
      * 实现逻辑：将原订单的菜品重新加入购物车中
+     *
      * @param id
      */
     public void repeatOrder(Long id) {
@@ -340,6 +345,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 商家后台：分页条件查询订单
+     *
      * @param ordersPageQueryDTO
      * @return
      */
@@ -351,7 +357,7 @@ public class OrderServiceImpl implements OrderService {
         List<Orders> ordersList = page.getResult();
         List<OrderVO> orderVOList = new ArrayList<>();
 
-        for (Orders order: ordersList) {
+        for (Orders order : ordersList) {
             OrderVO orderVO = new OrderVO();
             BeanUtils.copyProperties(order, orderVO);
             String orderDishes = getOrderDishesStringByOrderId(order.getId());  // 获取订单包含的商品的字符串
@@ -366,6 +372,7 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 根据订单id查询订单包含的商品并生成字符串返回
      * 商品字符串格式为：宫保鸡丁* 3；红烧带鱼* 2；农家小炒肉* 1；
+     *
      * @param orderId
      * @return
      */
@@ -382,6 +389,7 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 各个状态的订单数量统计
      * 统计待接单、待派送、派送中的订单数量
+     *
      * @return
      */
     public OrderStatisticsVO statistics() {
@@ -397,5 +405,18 @@ public class OrderServiceImpl implements OrderService {
         orderStatisticsVO.setDeliveryInProgress(deliveryInProgress);
 
         return orderStatisticsVO;
+    }
+
+    /**
+     * 接单
+     *
+     * @param ordersConfirmDTO
+     */
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders order = Orders.builder()
+                .id(ordersConfirmDTO.getId())
+                .status(Orders.CONFIRMED)
+                .build();
+        orderMapper.update(order);
     }
 }
