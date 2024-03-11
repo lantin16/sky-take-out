@@ -580,4 +580,32 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.update(order);
     }
+
+    /**
+     * 客户催单
+     * 当订单处于待接单状态时，客户可以催单，服务器会向商家后台的客户端浏览器推送消息
+     * @param id
+     */
+    public void reminder(Long id) {
+        Orders orderDB = orderMapper.getById(id);
+
+        // 如果订单不存在，抛出业务异常
+        if (orderDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Integer status = orderDB.getStatus();
+        // 如果订单不是处于待接单状态，抛出业务异常
+        if (!status.equals(Orders.TO_BE_CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        // 通过websocket向商家后台的客户端浏览器推送消息，采用json格式，包含：type, orderId, content
+        Map map = new HashMap();
+        map.put("type", 2); // 约定：1表示来单提醒，2表示客户催单
+        map.put("orderId", id);
+        map.put("content", "订单号：" + orderDB.getNumber());
+        String json = JSON.toJSONString(map);
+        webSocketServer.sendToAllClient(json);
+    }
 }
