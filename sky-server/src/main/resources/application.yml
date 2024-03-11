@@ -59,3 +59,9 @@ sky:
   wechat:
     appid: ${sky.wechat.appid}
     secret: ${sky.wechat.secret}
+  # 商家门店地址
+  shop:
+    address: 湖北省武汉市洪山区珞喻路1037号
+  # 百度地图配置
+  baidu-map:
+    ak: ${sky.baidu-map.ak}

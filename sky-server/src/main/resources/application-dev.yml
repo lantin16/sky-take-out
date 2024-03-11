@@ -22,3 +22,5 @@ sky:
   wechat:
     appid: wx17581507f14edaa1
     secret: 51f1bee427297c41be70cc02a7bf6848
+  baidu-map:
+    ak: Akye2NskbhtCdZMbiErRIaDz3LCBAA29

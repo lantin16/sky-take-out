@@ -1,6 +1,7 @@
 package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -15,6 +16,7 @@ import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
+import com.sky.utils.HttpClientUtil;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
@@ -25,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Or;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +59,14 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private WebSocketServer webSocketServer;
 
+    @Value("${sky.shop.address}")   // 注入配置项
+    private String shopAddress; // 商家地址
+    @Value("${sky.baidu-map.ak}")
+    private String ak; // 百度地图ak
+
+    private static final String GEOCODING_URL = "https://api.map.baidu.com/geocoding/v3";  // 百度地图地理编码接口
+    private static final String DIRECTION_RIDING_URL = "https://api.map.baidu.com/direction/v2/riding"; // 百度地图骑行路线规划接口
+
     /**
      * 用户下单
      *
@@ -65,12 +76,17 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
 
-        // 1. 处理各种业务异常（地址簿为空，购物车数据为空）
+        // 1. 处理各种业务异常（地址簿为空，收货地址距离商家过远，购物车数据为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
         if (addressBook == null) {
             // 地址簿为空，抛出业务异常
             throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
+
+        // 通过百度地图api计算下单地址距离商家的距离，如果距离过远，抛出业务异常
+        String deliveryAddress = addressBook.getProvinceName() + addressBook.getCityName() +
+                addressBook.getDistrictName() + addressBook.getDetail();   // 收货地址
+        checkOutOfRange(deliveryAddress);
 
         // 查询当前用户的购物车数据
         Long userId = BaseContext.getCurrentId();
@@ -93,7 +109,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setNumber(System.currentTimeMillis() + "-" + userId);   // 订单号就是要当前系统的时间戳+userId
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
-        orders.setAddress(addressBook.getDetail()); // TODO address怎么填？详细地址？or 省市区拼接？
+        orders.setAddress(deliveryAddress); // 省市区、详细地址的拼接
         orders.setUserName(addressBook.getConsignee()); // 收货人
         // TODO userName？
 
@@ -122,6 +138,81 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         return orderSubmitVO;
+    }
+
+
+    /**
+     * 检查客户的收货地址是否超出商家配送范围
+     * 如果用户的收货地址距离商家门店超出配送范围（配送范围为5公里内），则下单失败。
+     * @param deliveryAddress 收货地址
+     */
+    private void checkOutOfRange(String deliveryAddress) {
+        // 调用百度地图的地理编码接口获取收货地址和商家地址的经纬度
+        // 参考https://lbsyun.baidu.com/faq/api?title=webapi/guide/webservice-geocoding-base
+
+        // 构建请求参数
+        Map map = new HashMap<>();
+        map.put("address", shopAddress);
+        map.put("ak", ak);
+        map.put("output", "json");
+
+        // 利用HttpClient发送get请求，调用百度地图api获取店铺的经纬度坐标
+        String shopCoordinate = HttpClientUtil.doGet(GEOCODING_URL, map);
+
+        JSONObject jsonObject = JSON.parseObject(shopCoordinate);   // 将json字符串转换为json对象
+        if (!jsonObject.getString("status").equals("0")) { // status；本次API访问状态，如果成功返回0
+            throw new OrderBusinessException(MessageConstant.SHOP_ADDRESS_RESOLUTION_FAILED);
+        }
+
+        // 数据解析
+        JSONObject location = jsonObject.getJSONObject("result").getJSONObject("location");
+        String lat = location.getString("lat"); // 纬度
+        String lng = location.getString("lng"); // 经度
+        // 店铺经纬度坐标
+        String shopLngLat = lat + "," + lng;
+
+
+        // 同理，获取收货地址的经纬度坐标
+        map.put("address", deliveryAddress);    // 修改请求参数中的地址为收货地址
+        String deliveryCoordinate = HttpClientUtil.doGet(GEOCODING_URL, map);
+
+        jsonObject = JSON.parseObject(deliveryCoordinate);
+        if (!jsonObject.getString("status").equals("0")) {
+            throw new OrderBusinessException(MessageConstant.DELIVERY_ADDRESS_RESOLUTION_FAILED);
+        }
+
+        // 数据解析
+        location = jsonObject.getJSONObject("result").getJSONObject("location");
+        lat = location.getString("lat"); // 纬度
+        lng = location.getString("lng"); // 经度
+        // 用户收货地址经纬度坐标
+        String deliveryLngLat = lat + "," + lng;
+
+        // 调用百度地图的骑行路线规划接口，计算两点之间的距离（不是直线距离，而是骑手预计实际骑行的距离）
+        Map map2 = new HashMap<>();
+        map2.put("origin", shopLngLat); // 起点经纬度，格式为：纬度,经度
+        map2.put("destination", deliveryLngLat); // 终点经纬度
+        map2.put("ak", ak);
+        map2.put("riding_type", "1"); // 骑行类型，0：普通骑行，1：电动车骑行  （送餐一般为电动车骑行）
+        String json = HttpClientUtil.doGet(DIRECTION_RIDING_URL, map2);
+        jsonObject = JSON.parseObject(json);
+
+        if (!jsonObject.getString("status").equals("0")) { // 0：成功，1：服务内部错误，2：参数无效，2001：无骑行路线
+            throw new OrderBusinessException(MessageConstant.DELIVERY_ROUTE_PLANNING_FAILED); // 配送路线规划失败
+        }
+
+        // 数据解析
+        JSONObject result = jsonObject.getJSONObject("result");
+        JSONArray jsonArray = (JSONArray) result.get("routes"); // 若干路线方案
+        Integer distance = (Integer) ((JSONObject) jsonArray.get(0)).get("distance");
+
+        log.info("店铺地址：{}，经纬度: {}", shopAddress, shopLngLat);
+        log.info("收货地址：{}，经纬度: {}", deliveryAddress, deliveryLngLat);
+        log.info("派送距离：{}米", distance);
+
+        if (distance > 5000) { // 如果距离超过5公里
+            throw new OrderBusinessException(MessageConstant.OUT_OF_DELIVERY_RANGE);
+        }
     }
 
 
