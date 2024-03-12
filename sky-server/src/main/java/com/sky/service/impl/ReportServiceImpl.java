@@ -4,6 +4,7 @@ import com.sky.entity.Orders;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
+import com.sky.vo.OrderReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
 import org.apache.commons.lang3.StringUtils;
@@ -34,12 +35,7 @@ public class ReportServiceImpl implements ReportService {
      * @return
      */
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = new ArrayList<>();   // 用于存放begin到end之间的每天的日期（包括begin和end）
-
-        while (!begin.isAfter(end)) {
-            dateList.add(begin);
-            begin = begin.plusDays(1);
-        }
+        List<LocalDate> dateList = getDateList(begin, end);
 
         // 将日期列表转换为字符串，日期之间用逗号分隔
         String dateListStr = StringUtils.join(dateList, ",");
@@ -72,17 +68,28 @@ public class ReportServiceImpl implements ReportService {
 
 
     /**
+     * 获取begin~end之间的日期列表
+     * @param begin
+     * @param end
+     * @return
+     */
+    private List<LocalDate> getDateList(LocalDate begin, LocalDate end) {
+        List<LocalDate> dateList = new ArrayList<>();   // 用于存放begin到end之间的每天的日期（包括begin和end）
+        while (!begin.isAfter(end)) {
+            dateList.add(begin);
+            begin = begin.plusDays(1);
+        }
+        return dateList;
+    }
+
+    /**
      * 统计指定时间区间内的用户数据（每日新增和用户总量）
      * @param begin
      * @param end
      * @return
      */
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
-        List<LocalDate> dateList = new ArrayList<>();
-        while (!begin.isAfter(end)) {
-            dateList.add(begin);
-            begin = begin.plusDays(1);
-        }
+        List<LocalDate> dateList = getDateList(begin, end);
 
         List<Integer> newUserList = new ArrayList<>();  // 用于存放每天的新增用户数
         List<Integer> totalUserList = new ArrayList<>();    // 用于存放每天的用户总量
@@ -108,5 +115,70 @@ public class ReportServiceImpl implements ReportService {
                 .newUserList(StringUtils.join(newUserList, ","))
                 .totalUserList(StringUtils.join(totalUserList, ","))
                 .build();
+    }
+
+    /**
+     * 统计指定时间区间内的订单数据
+     * @param begin
+     * @param end
+     * @return
+     */
+    public OrderReportVO getOrderStatistics(LocalDate begin, LocalDate end) {
+        List<LocalDate> dateList = getDateList(begin, end);
+
+        List<Integer> orderCountList = new ArrayList<>();  // 用于存放每日订单总数
+        List<Integer> validOrderCountList = new ArrayList<>();    // 用于存放每日有效订单数
+        for (LocalDate date : dateList) {
+            LocalDateTime beginTime = LocalDateTime.of(date, LocalTime.MIN);
+            LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
+
+            // 查询每日订单总数
+            Integer orderCount = getOrderCount(beginTime, endTime, null);
+            orderCountList.add(orderCount);
+
+            // 查询每日有效订单数（当日已完成的订单数）
+            Integer validOrderCount = getOrderCount(beginTime, endTime, Orders.COMPLETED);
+            validOrderCountList.add(validOrderCount);
+        }
+
+        // 计算时间区间内的订单总数量
+        Integer totalOrderCount = orderCountList.stream().reduce(Integer::sum).get();
+
+        // 计算时间区间内的有效订单总数量
+        Integer totalValidOrderCount = validOrderCountList.stream().reduce(Integer::sum).get();
+
+        // 计算订单完成率，=有效订单总数/订单总数
+        Double orderCompletionRate = 0.0;
+        if (totalOrderCount != 0) {
+            orderCompletionRate = totalValidOrderCount.doubleValue() / totalOrderCount;
+        }
+
+        // 封装结果数据
+        return OrderReportVO.builder()
+                .dateList(StringUtils.join(dateList, ","))
+                .orderCountList(StringUtils.join(orderCountList, ","))
+                .validOrderCountList(StringUtils.join(validOrderCountList, ","))
+                .totalOrderCount(totalOrderCount)
+                .validOrderCount(totalValidOrderCount)
+                .orderCompletionRate(orderCompletionRate)
+                .build();
+    }
+
+    /**
+     * 根据条件统计订单数量
+     * 将公共代码抽取处理另作一个方法
+     * @param begin
+     * @param end
+     * @param status
+     * @return
+     */
+    private Integer getOrderCount(LocalDateTime begin, LocalDateTime end, Integer status) {
+        Map map = new HashMap();
+        map.put("begin", begin);
+        map.put("end", end);
+        map.put("status", status);
+
+        Integer orderCount = orderMapper.countByMap(map);
+        return orderCount == null ? 0 : orderCount;
     }
 }
